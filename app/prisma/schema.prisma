@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SolicitudAyuda {
+  id        String   @id @default(cuid())
+  creadoEn  DateTime @default(now())
+
+  // Datos opcionales del solicitante
+  nombreAnonimo String?
+  edad          Int?
+
+  // Ubicación detectada o ingresada manualmente
+  ciudad   String?
+  estadoVe String?
+  latitud  Float?
+  longitud Float?
+
+  // Formulario de síntomas
+  sintomas     String[]
+  descripcion  String?
+  nivelCrisis  Int      // 1 (bajo) a 5 (crisis severa)
+  esEmergencia Boolean  @default(false)
+
+  // Preferencia de contacto
+  contactoPreferido String // "video" | "llamada" | "chat"
+
+  // Estado de la solicitud
+  estadoSolicitud String @default("esperando")
+  // "esperando" | "asignada" | "en_sesion" | "completada" | "cancelada"
+
+  // Relaciones
+  psicologoId String?
+  psicologo   Psicologo? @relation(fields: [psicologoId], references: [id])
+  sesion      Sesion?
+
+  @@map("solicitudes_ayuda")
+}
+
+model Psicologo {
+  id       String   @id @default(cuid())
+  creadoEn DateTime @default(now())
+
+  // Datos personales
+  nombre   String
+  email    String @unique
+  password String
+  telefono String?
+  bio      String?
+
+  // Certificación profesional
+  cedula         String  @unique
+  numFederacion  String?
+  certificado    Boolean @default(false)
+
+  // Especialidades (duelo, trauma, ansiedad, infantil, familiar, etc.)
+  especialidades String[]
+
+  // Estado en tiempo real
+  estadoActual    String   @default("offline")
+  // "disponible" | "en_sesion" | "en_espera" | "no_disponible" | "offline"
+  ultimaActividad DateTime?
+
+  // Estadísticas
+  totalSesiones Int @default(0)
+
+  // Relaciones
+  solicitudes SolicitudAyuda[]
+  sesiones    Sesion[]
+
+  @@map("psicologos")
+}
+
+model Sesion {
+  id       String   @id @default(cuid())
+  creadoEn DateTime @default(now())
+
+  tipo      String  // "video" | "llamada" | "chat"
+  salaJitsi String? // ID único de la sala Jitsi
+
+  iniciadoEn   DateTime?
+  completadoEn DateTime?
+  notas        String?   // Solo visible para el psicólogo
+
+  // Relaciones
+  solicitudId String         @unique
+  solicitud   SolicitudAyuda @relation(fields: [solicitudId], references: [id])
+
+  psicologoId String
+  psicologo   Psicologo @relation(fields: [psicologoId], references: [id])
+
+  @@map("sesiones")
+}
