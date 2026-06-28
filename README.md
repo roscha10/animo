@@ -1,11 +1,42 @@
-# Ánimo — Plataforma de Apoyo en Salud Mental
+# Ánimo — Plataforma de apoyo psicológico voluntario
 
-**Ánimo** es una iniciativa sin fines de lucro de la alianza **Kaimind × Vikua** para conectar a personas en Venezuela que necesitan apoyo emocional con psicólogos venezolanos voluntarios, certificados y disponibles en tiempo real.
+**Ánimo** es una iniciativa sin fines de lucro de la alianza **Kaimind × Vikua** que conecta personas en crisis emocional con psicólogos venezolanos voluntarios disponibles en tiempo real.
 
-- 100% gratuito
-- Sin registro previo para pacientes
-- Videollamada, llamada o chat (Jitsi Meet)
+- 100% gratuito, sin registro para pacientes
+- Videollamada, llamada o chat vía Jitsi Meet
 - Protocolo de emergencia ante ideación suicida (línea 171)
+- Operado en Venezuela
+
+---
+
+## Repositorio
+
+Este repo contiene dos versiones del proyecto:
+
+```
+animo/
+├── Animo/      # v1 — Next.js 15 + Prisma  →  en producción
+└── AnimoV2/    # v2 — FastAPI + React/Vite  →  en desarrollo
+```
+
+| | v1 (`Animo/`) | v2 (`AnimoV2/`) |
+|---|---|---|
+| **Stack** | Next.js 15 + Prisma ORM | FastAPI (Python) + React/Vite |
+| **Base de datos** | PostgreSQL + Prisma | PostgreSQL + SQLAlchemy |
+| **Auth** | JWT + bcryptjs | JWT + passlib |
+| **Estado** | En producción | En desarrollo |
+| **URL** | animo.kaimindconsulting.com | — |
+
+Cada carpeta tiene su propio README con instrucciones de setup y deploy.
+
+- [Ánimo v1 — README](./Animo/README.md)
+- [Ánimo v2 — README](./AnimoV2/README.md)
+
+---
+
+## Equipo
+
+Desarrollado por **Kaimind × Vikua** en alianza con la Federación de Psicólogos de Venezuela.
 
 ---
 
