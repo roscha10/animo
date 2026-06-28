@@ -18,43 +18,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "solicitudId requerido" }, { status: 400 });
   }
 
-  // Verificar que la solicitud existe y está esperando
   const solicitud = await prisma.solicitudAyuda.findUnique({
     where: { id: solicitudId },
   });
   if (!solicitud) {
     return NextResponse.json({ error: "Solicitud no encontrada" }, { status: 404 });
   }
-  if (solicitud.estadoSolicitud !== "esperando") {
-    return NextResponse.json({ error: "Esta solicitud ya fue tomada" }, { status: 409 });
-  }
 
   const tipoSesion = tipo ?? solicitud.contactoPreferido;
 
-  // Crear sesión y actualizar solicitud en una transacción
-  const sesion = await prisma.$transaction(async (tx) => {
-    const nuevaSesion = await tx.sesion.create({
-      data: {
-        tipo: tipoSesion,
-        salaJitsi: tipoSesion === "video" ? generarSalaJitsi() : null,
-        iniciadoEn: new Date(),
-        solicitudId,
-        psicologoId,
-      },
-    });
+  // Bloqueo atómico: solo el primero que ejecute esto gana
+  let sesion;
+  try {
+    sesion = await prisma.$transaction(async (tx) => {
+      // Actualizar SOLO si sigue en "esperando" — si ya fue tomada, count=0
+      const tomada = await tx.solicitudAyuda.updateMany({
+        where: { id: solicitudId, estadoSolicitud: "esperando" },
+        data: { estadoSolicitud: "en_sesion", psicologoId },
+      });
+      if (tomada.count === 0) {
+        throw new Error("ALREADY_TAKEN");
+      }
 
-    await tx.solicitudAyuda.update({
-      where: { id: solicitudId },
-      data: { estadoSolicitud: "en_sesion", psicologoId },
-    });
+      const nuevaSesion = await tx.sesion.create({
+        data: {
+          tipo: tipoSesion,
+          salaJitsi: tipoSesion === "video" ? generarSalaJitsi() : null,
+          iniciadoEn: new Date(),
+          solicitudId,
+          psicologoId,
+        },
+      });
 
-    await tx.psicologo.update({
-      where: { id: psicologoId },
-      data: { estadoActual: "en_sesion", ultimaActividad: new Date() },
-    });
+      await tx.psicologo.update({
+        where: { id: psicologoId },
+        data: { estadoActual: "en_sesion", ultimaActividad: new Date() },
+      });
 
-    return nuevaSesion;
-  });
+      return nuevaSesion;
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === "ALREADY_TAKEN") {
+      return NextResponse.json({ error: "Esta solicitud ya fue tomada por otro psicólogo" }, { status: 409 });
+    }
+    throw err;
+  }
 
   return NextResponse.json({ id: sesion.id }, { status: 201 });
 }

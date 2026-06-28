@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Heart, LogOut, Users, CheckCircle, Clock,
-  Video, Phone, MessageCircle, AlertTriangle, RefreshCw
+  Video, Phone, MessageCircle, AlertTriangle, RefreshCw, Bell
 } from "lucide-react";
 
 type EstadoPsicologo = "disponible" | "en_sesion" | "en_espera" | "no_disponible" | "offline";
@@ -43,6 +43,22 @@ const CONTACTO_ICON: Record<string, typeof Video> = {
   chat: MessageCircle,
 };
 
+function tocarAlertta() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch {}
+}
+
 export default function DashboardPsicologo() {
   const router = useRouter();
   const [psicologo, setPsicologo] = useState<DatosPsicologo | null>(null);
@@ -50,6 +66,14 @@ export default function DashboardPsicologo() {
   const [cargando, setCargando] = useState(true);
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
   const [aceptando, setAceptando] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [nuevaAlerta, setNuevaAlerta] = useState(false);
+  const prevCountRef = useRef<number>(0);
+
+  function mostrarToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
+  }
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -62,7 +86,18 @@ export default function DashboardPsicologo() {
         return;
       }
       if (resPsi.ok) setPsicologo(await resPsi.json());
-      if (resSol.ok) setSolicitudes(await resSol.json());
+      if (resSol.ok) {
+        const nuevas: Solicitud[] = await resSol.json();
+        setSolicitudes((prev) => {
+          if (nuevas.length > prevCountRef.current && prevCountRef.current >= 0) {
+            tocarAlertta();
+            setNuevaAlerta(true);
+            setTimeout(() => setNuevaAlerta(false), 3000);
+          }
+          prevCountRef.current = nuevas.length;
+          return nuevas;
+        });
+      }
     } finally {
       setCargando(false);
     }
@@ -70,7 +105,7 @@ export default function DashboardPsicologo() {
 
   useEffect(() => {
     cargarDatos();
-    const interval = setInterval(cargarDatos, 15000); // refresca cada 15s
+    const interval = setInterval(cargarDatos, 3000);
     return () => clearInterval(interval);
   }, [cargarDatos]);
 
@@ -97,7 +132,12 @@ export default function DashboardPsicologo() {
         body: JSON.stringify({ solicitudId, tipo }),
       });
       const data = await res.json();
-      if (res.ok) router.push(`/sesion/${data.id}`);
+      if (res.ok) {
+        router.push(`/sesion/${data.id}`);
+      } else if (res.status === 409) {
+        mostrarToast("⚡ Otro psicólogo se adelantó — el paciente ya fue atendido");
+        cargarDatos();
+      }
     } finally {
       setAceptando(null);
     }
@@ -120,6 +160,13 @@ export default function DashboardPsicologo() {
 
   return (
     <main className="min-h-screen bg-slate-50">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-medium animate-bounce">
+          {toast}
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-animo-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -186,17 +233,21 @@ export default function DashboardPsicologo() {
         {/* Lista de solicitudes */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               Solicitudes pendientes
               {solicitudes.length > 0 && (
-                <span className="ml-2 bg-animo-600 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className={`bg-animo-600 text-white text-xs px-2 py-0.5 rounded-full ${nuevaAlerta ? "animate-bounce" : ""}`}>
                   {solicitudes.length}
                 </span>
               )}
+              {nuevaAlerta && (
+                <Bell className="w-4 h-4 text-animo-500 animate-ping" />
+              )}
             </h2>
-            <button onClick={cargarDatos} className="text-slate-400 hover:text-animo-600 transition-colors">
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+              <span>Actualizando cada 3s</span>
+            </div>
           </div>
 
           {solicitudes.length === 0 ? (
@@ -204,7 +255,7 @@ export default function DashboardPsicologo() {
               <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
               <p className="text-slate-500 font-medium">Sin solicitudes pendientes</p>
               <p className="text-slate-400 text-sm mt-1">
-                Cuando alguien pida ayuda, aparecerá aquí
+                Cuando alguien pida ayuda, aparecerá aquí automáticamente
               </p>
             </div>
           ) : (
@@ -222,7 +273,6 @@ export default function DashboardPsicologo() {
                       sol.esEmergencia ? "border-l-red-500 bg-red-50/30" : "border-l-animo-400"
                     }`}
                   >
-                    {/* Cabecera */}
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         {sol.esEmergencia && (
@@ -243,11 +293,10 @@ export default function DashboardPsicologo() {
                       </div>
                       <div className="flex items-center gap-1 text-xs text-slate-400 flex-shrink-0">
                         <Clock className="w-3 h-3" />
-                        <span>{tiempoEspera}m</span>
+                        <span>{tiempoEspera}m esperando</span>
                       </div>
                     </div>
 
-                    {/* Síntomas */}
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {sol.sintomas.map((s) => (
                         <span key={s} className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">
@@ -256,7 +305,6 @@ export default function DashboardPsicologo() {
                       ))}
                     </div>
 
-                    {/* Nivel de crisis */}
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-xs text-slate-500">Intensidad:</span>
                       <div className="flex gap-1">
@@ -282,7 +330,6 @@ export default function DashboardPsicologo() {
                       </p>
                     )}
 
-                    {/* Acción */}
                     <button
                       onClick={() => aceptarSolicitud(sol.id, sol.contactoPreferido)}
                       disabled={aceptando === sol.id || psicologo?.estadoActual !== "disponible"}
@@ -296,10 +343,10 @@ export default function DashboardPsicologo() {
                     >
                       <IconoContacto className="w-4 h-4" />
                       {aceptando === sol.id
-                        ? "Iniciando sesión..."
+                        ? "Conectando..."
                         : psicologo?.estadoActual !== "disponible"
                         ? "Cambia tu estado a Disponible para aceptar"
-                        : `Aceptar (${sol.contactoPreferido})`}
+                        : `Atender ahora (${sol.contactoPreferido})`}
                     </button>
                   </div>
                 );

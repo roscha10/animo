@@ -3,10 +3,12 @@ import { prisma } from "@/lib/db";
 import { obtenerSesionActual } from "@/lib/auth";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const psicologoIdAutenticado = await obtenerSesionActual();
+
   const sesion = await prisma.sesion.findUnique({
     where: { id },
     select: {
@@ -14,6 +16,8 @@ export async function GET(
       tipo: true,
       salaJitsi: true,
       iniciadoEn: true,
+      completadoEn: true,
+      psicologoId: true,
       solicitud: {
         select: {
           nombreAnonimo: true,
@@ -33,10 +37,12 @@ export async function GET(
     return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
   }
 
-  return NextResponse.json(sesion);
+  return NextResponse.json({
+    ...sesion,
+    miRol: psicologoIdAutenticado === sesion.psicologoId ? "psicologo" : "paciente",
+  });
 }
 
-// El psicólogo marca la sesión como completada
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
