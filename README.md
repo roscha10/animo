@@ -249,12 +249,44 @@ systemctl reload caddy
 
 Caddy gestiona el SSL automáticamente (Let's Encrypt).
 
-### Actualizar la app
+### Actualizar la app (flujo normal del equipo)
+
+Cada vez que haya cambios en el repo, así se despliega en producción:
 
 ```bash
+# 1. Conectarse al VPS
+ssh root@213.199.58.110
+
+# 2. Ir al directorio del proyecto
 cd /opt/animo
+
+# 3. Bajar los últimos cambios del repo
 git pull
+
+# 4. Reconstruir y reiniciar solo el contenedor de la app
 docker compose up -d --build app
+```
+
+El build tarda ~2 minutos. La base de datos y sus datos **no se tocan** en este proceso.
+
+> **Tip:** Si solo cambiaron archivos de la carpeta `app/public/` (imágenes, etc.) no hace falta rebuild — puedes copiar los archivos directamente:
+> ```bash
+> # Desde tu PC (PowerShell)
+> scp -r app/public/ root@213.199.58.110:/opt/animo/app/
+> docker compose restart app
+> ```
+
+### Ver logs en producción
+
+```bash
+# Logs en tiempo real
+docker compose logs -f app
+
+# Últimas 50 líneas
+docker compose logs app --tail=50
+
+# Ver estado de los contenedores
+docker compose ps
 ```
 
 ---

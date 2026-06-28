@@ -18,17 +18,17 @@ export default function Home() {
             <Image
               src="/logos/kaimind.png"
               alt="Kaimind"
-              width={100}
-              height={28}
-              className="h-7 w-auto object-contain"
+              width={360}
+              height={96}
+              className="h-24 w-auto object-contain"
             />
             <span className="text-animo-400 text-sm">×</span>
             <Image
               src="/logos/vikua.png"
               alt="Vikua"
-              width={80}
-              height={28}
-              className="h-7 w-auto object-contain"
+              width={100}
+              height={34}
+              className="h-[34px] w-auto object-contain"
             />
           </div>
         </div>
@@ -137,36 +137,24 @@ export default function Home() {
       {/* Footer co-branding */}
       <footer className="bg-vikua-dark text-slate-400 py-10 px-6">
         <div className="max-w-3xl mx-auto">
-          {/* Logos en igual protagonismo */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-8">
-            {/* Kaimind */}
-            <div className="flex flex-col items-center gap-2">
-              <Image
-                src="/logos/kaimind.png"
-                alt="Kaimind"
-                width={140}
-                height={40}
-                className="h-10 w-auto object-contain"
-              />
-              <p className="text-slate-500 text-xs">Data Insight_</p>
-            </div>
-
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-slate-500 text-2xl font-light">×</span>
-              <span className="text-slate-600 text-xs uppercase tracking-widest">alianza</span>
-            </div>
-
-            {/* Vikua */}
-            <div className="flex flex-col items-center gap-2">
-              <Image
-                src="/logos/vikua.png"
-                alt="Vikua"
-                width={120}
-                height={40}
-                className="h-10 w-auto object-contain"
-              />
-              <p className="text-slate-500 text-xs">Conocimiento para acertar</p>
-            </div>
+          {/* Logos — mismo diseño que el header */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <span className="text-slate-400 text-sm">Una alianza de</span>
+            <Image
+              src="/logos/kaimind.png"
+              alt="Kaimind"
+              width={360}
+              height={96}
+              className="h-24 w-auto object-contain"
+            />
+            <span className="text-slate-500 text-sm">×</span>
+            <Image
+              src="/logos/vikua.png"
+              alt="Vikua"
+              width={100}
+              height={34}
+              className="h-[34px] w-auto object-contain"
+            />
           </div>
 
           <div className="border-t border-slate-700 pt-6 text-center space-y-1">
