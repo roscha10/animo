@@ -1,7 +1,8 @@
-# Entorno — NUNCA subir a git
+# Variables de entorno (nunca al repo)
 .env
 .env.local
 .env.*.local
+.env.production
 
 # Node
 node_modules/
@@ -10,11 +11,18 @@ app/node_modules/
 app/.next/
 app/.turbo/
 
+# Python
+__pycache__/
+*.pyc
+
 # Build
 out/
 dist/
 app/out/
 app/dist/
+
+# Docker volumes locales
+postgres-data/
 
 # OS
 .DS_Store
