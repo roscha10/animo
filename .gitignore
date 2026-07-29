@@ -36,3 +36,6 @@ npm-debug.log*
 .vscode/
 .idea/
 *.swp
+
+/Merida_ayuda/
+/una_vaquita_por_venezuela/
